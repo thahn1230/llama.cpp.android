@@ -11,14 +11,14 @@ ggml_profiler_t g_ggml_profiler = {0};
 
 void ggml_profiler_init(void) {
     memset(&g_ggml_profiler, 0, sizeof(ggml_profiler_t));
-    g_ggml_profiler.session_start_time_us = ggml_time_us();
+    g_ggml_profiler.session_start_time_us = ggml_prof_time_us();
     printf("[GGML PROFILER] Profiling initialized\n");
 }
 
 void ggml_profiler_reset(void) {
     g_ggml_profiler.count = 0;
     memset(g_ggml_profiler.stats, 0, sizeof(g_ggml_profiler.stats));
-    g_ggml_profiler.session_start_time_us = ggml_time_us();
+    g_ggml_profiler.session_start_time_us = ggml_prof_time_us();
     printf("[GGML PROFILER] Profiling reset\n");
 }
 
@@ -70,7 +70,7 @@ void ggml_profiler_print_results(void) {
         return;
     }
     
-    double session_total_time_us = ggml_time_us() - g_ggml_profiler.session_start_time_us;
+    double session_total_time_us = ggml_prof_time_us() - g_ggml_profiler.session_start_time_us;
     
     printf("\n");
     print_separator();
@@ -188,7 +188,7 @@ void ggml_profiler_save_results(const char* filename) {
         return;
     }
     
-    double session_total_time_us = ggml_time_us() - g_ggml_profiler.session_start_time_us;
+    double session_total_time_us = ggml_prof_time_us() - g_ggml_profiler.session_start_time_us;
     
     fprintf(file, "# GGML Profiling Results\n");
     fprintf(file, "# Session Duration: %.2f ms\n", session_total_time_us / 1000.0);
@@ -217,4 +217,4 @@ void ggml_profiler_save_results(const char* filename) {
     printf("[GGML PROFILER] Results saved to %s\n", filename);
 }
 
-#endif // GGML_PROFILING_ENABLED 
+#endif // GGML_PROFILING_ENABLED

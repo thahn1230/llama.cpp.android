@@ -18,7 +18,7 @@ extern "C" {
 #if GGML_PROFILING_ENABLED
 
 // High-resolution timer functions
-static inline double ggml_time_us(void) {
+static inline double ggml_prof_time_us(void) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000000.0 + tv.tv_usec;
@@ -52,13 +52,13 @@ ggml_prof_stat_t* ggml_profiler_get_stat(const char* name);
 
 // Timing macros
 #define GGML_PROF_START(name, bytes) \
-    double prof_start_##name = ggml_time_us(); \
+    double prof_start_##name = ggml_prof_time_us(); \
     ggml_prof_stat_t* prof_stat_##name = ggml_profiler_get_stat(#name); \
     uint64_t prof_bytes_##name = (uint64_t)(bytes);
 
 #define GGML_PROF_END(name) \
     do { \
-        double prof_end_time = ggml_time_us(); \
+        double prof_end_time = ggml_prof_time_us(); \
         double prof_duration = prof_end_time - prof_start_##name; \
         if (prof_stat_##name) { \
             prof_stat_##name->total_time_us += prof_duration; \
