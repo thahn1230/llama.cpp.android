@@ -1,4 +1,4 @@
-git #include "ggml-cpu-profiling.h"
+#include "ggml-cpu-profiling.h"
 #include "ggml.h"
 #include <stdlib.h>
 #include <string.h>
@@ -27,15 +27,6 @@ ggml_prof_stat_t* ggml_profiler_get_stat(const char* name) {
     
     // Try to find existing stat
     for (int i = 0; i < g_ggml_profiler.count; i++) {
-        if (strcmp(g_ggml_profiler.stats[i].name, name) == 0) {
-            return &g_ggml_profiler.stats[i];
-        }
-    }
-    
-    // Create new stat if we have space
-    if (g_ggml_profiler.count < 64) {
-        ggml_prof_stat_t* stat = &g_ggml_profiler.stats[g_ggml_profiler.count];
-        strncpy(stat->name, name, sizeof(stat->name) - 1);
         stat->name[sizeof(stat->name) - 1] = '\0';
         stat->total_time_us = 0.0;
         stat->call_count = 0;
