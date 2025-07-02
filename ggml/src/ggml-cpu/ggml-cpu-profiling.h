@@ -131,4 +131,4 @@ static inline void ggml_profiler_save_results(const char* filename) { (void)file
 
 #ifdef __cplusplus
 }
-#endif 
+#endif

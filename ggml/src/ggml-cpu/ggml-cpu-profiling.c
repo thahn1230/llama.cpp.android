@@ -1,4 +1,4 @@
-#include "ggml-cpu-profiling.h"
+git #include "ggml-cpu-profiling.h"
 #include "ggml.h"
 #include <stdlib.h>
 #include <string.h>
