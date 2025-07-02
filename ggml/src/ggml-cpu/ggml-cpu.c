@@ -1463,7 +1463,7 @@ UseGgmlGemm2:;
     }
 
     // End profiling based on projection type
-    if (dst->name) {
+    if (dst->name && dst->name[0] != '\0') {
         if (strstr(dst->name, "q") || strstr(dst->name, "wq")) {
             GGML_PROF_Q_PROJ_END();
         } else if (strstr(dst->name, "k") || strstr(dst->name, "wk")) {

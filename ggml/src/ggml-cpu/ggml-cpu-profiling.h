@@ -52,28 +52,49 @@ void ggml_profiler_print_results(void);
 void ggml_profiler_save_results(const char* filename);
 ggml_prof_stat_t* ggml_profiler_get_stat(const char* name);
 
-// Block-scoped profiling macros to support nested profiling
-#define GGML_PROF_START(name, bytes) \
-    { \
-        double ggml_prof_start_time = ggml_prof_time_us(); \
-        ggml_prof_stat_t* ggml_prof_stat = ggml_profiler_get_stat(#name); \
-        uint64_t ggml_prof_bytes = (uint64_t)(bytes);
+// Function-based profiling to avoid variable scope issues
+typedef struct {
+    double start_time;
+    ggml_prof_stat_t* stat;
+    uint64_t bytes;
+} ggml_prof_ctx_t;
 
-#define GGML_PROF_END(name) \
-        if (ggml_prof_stat) { \
-            double ggml_prof_end_time = ggml_prof_time_us(); \
-            double ggml_prof_duration = ggml_prof_end_time - ggml_prof_start_time; \
-            ggml_prof_stat->total_time_us += ggml_prof_duration; \
-            ggml_prof_stat->call_count++; \
-            ggml_prof_stat->total_bytes += ggml_prof_bytes; \
-            if (ggml_prof_stat->call_count == 1 || ggml_prof_duration < ggml_prof_stat->min_time_us) { \
-                ggml_prof_stat->min_time_us = ggml_prof_duration; \
-            } \
-            if (ggml_prof_stat->call_count == 1 || ggml_prof_duration > ggml_prof_stat->max_time_us) { \
-                ggml_prof_stat->max_time_us = ggml_prof_duration; \
-            } \
-        } \
+// Stack for nested profiling contexts
+extern ggml_prof_ctx_t ggml_prof_stack[8];
+extern int ggml_prof_stack_depth;
+
+// Function-based profiling API
+static inline void ggml_prof_start_impl(const char* name, uint64_t bytes) {
+    if (ggml_prof_stack_depth < 7) {
+        ggml_prof_stack[ggml_prof_stack_depth].start_time = ggml_prof_time_us();
+        ggml_prof_stack[ggml_prof_stack_depth].stat = ggml_profiler_get_stat(name);
+        ggml_prof_stack[ggml_prof_stack_depth].bytes = bytes;
+        ggml_prof_stack_depth++;
     }
+}
+
+static inline void ggml_prof_end_impl(void) {
+    if (ggml_prof_stack_depth > 0) {
+        ggml_prof_stack_depth--;
+        ggml_prof_ctx_t* ctx = &ggml_prof_stack[ggml_prof_stack_depth];
+        if (ctx->stat) {
+            double end_time = ggml_prof_time_us();
+            double duration = end_time - ctx->start_time;
+            ctx->stat->total_time_us += duration;
+            ctx->stat->call_count++;
+            ctx->stat->total_bytes += ctx->bytes;
+            if (ctx->stat->call_count == 1 || duration < ctx->stat->min_time_us) {
+                ctx->stat->min_time_us = duration;
+            }
+            if (ctx->stat->call_count == 1 || duration > ctx->stat->max_time_us) {
+                ctx->stat->max_time_us = duration;
+            }
+        }
+    }
+}
+
+#define GGML_PROF_START(name, bytes) ggml_prof_start_impl(#name, (uint64_t)(bytes))
+#define GGML_PROF_END(name) ggml_prof_end_impl()
 
 // Specialized macros for different operation types
 #define GGML_PROF_QUANTIZE_START(type, elements) \

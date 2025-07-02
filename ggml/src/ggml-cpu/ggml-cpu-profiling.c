@@ -9,9 +9,14 @@
 // Global profiler instance
 ggml_profiler_t g_ggml_profiler = {0};
 
+// Profiling stack for nested contexts
+ggml_prof_ctx_t ggml_prof_stack[8] = {0};
+int ggml_prof_stack_depth = 0;
+
 void ggml_profiler_init(void) {
     memset(&g_ggml_profiler, 0, sizeof(ggml_profiler_t));
     g_ggml_profiler.session_start_time_us = ggml_prof_time_us();
+    ggml_prof_stack_depth = 0;
     printf("[GGML PROFILER] Profiling initialized\n");
 }
 
