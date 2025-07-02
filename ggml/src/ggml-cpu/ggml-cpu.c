@@ -1835,7 +1835,9 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
             } break;
         case GGML_OP_RMS_NORM:
             {
+                GGML_PROF_RMSNORM_FUNC_START(ggml_nelements(tensor) * sizeof(float));
                 ggml_compute_forward_rms_norm(params, tensor);
+                GGML_PROF_RMSNORM_FUNC_END();
             } break;
         case GGML_OP_RMS_NORM_BACK:
             {
@@ -1915,7 +1917,9 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
             } break;
         case GGML_OP_SOFT_MAX:
             {
+                GGML_PROF_SOFTMAX_FUNC_START(ggml_nelements(tensor) * sizeof(float));
                 ggml_compute_forward_soft_max(params, tensor);
+                GGML_PROF_SOFTMAX_FUNC_END();
             } break;
         case GGML_OP_SOFT_MAX_BACK:
             {
@@ -1923,7 +1927,9 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
             } break;
         case GGML_OP_ROPE:
             {
+                GGML_PROF_ROPE_FUNC_START(ggml_nelements(tensor) * sizeof(float));
                 ggml_compute_forward_rope(params, tensor);
+                GGML_PROF_ROPE_FUNC_END();
             } break;
         case GGML_OP_ROPE_BACK:
             {

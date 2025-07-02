@@ -151,6 +151,50 @@ ggml_prof_stat_t* ggml_profiler_get_stat(const char* name);
 #define GGML_PROF_DOWN_PROJ_START(bytes) GGML_PROF_START(down_projection, bytes)
 #define GGML_PROF_DOWN_PROJ_END() GGML_PROF_END(down_projection)
 
+// Enhanced function-specific profiling with source info
+#define GGML_PROF_FUNC_START(func_name, bytes) GGML_PROF_START(func_name, bytes)
+#define GGML_PROF_FUNC_END(func_name) GGML_PROF_END(func_name)
+
+// Specific quantization format profiling  
+#define GGML_PROF_Q4_K_START(bytes) GGML_PROF_START(q4_K_q8_K_w4a16, bytes)
+#define GGML_PROF_Q4_K_END() GGML_PROF_END(q4_K_q8_K_w4a16)
+
+#define GGML_PROF_Q4_0_START(bytes) GGML_PROF_START(q4_0_q8_0_w4a8, bytes)
+#define GGML_PROF_Q4_0_END() GGML_PROF_END(q4_0_q8_0_w4a8)
+
+#define GGML_PROF_Q4_1_START(bytes) GGML_PROF_START(q4_1_q8_1_w4a8, bytes)
+#define GGML_PROF_Q4_1_END() GGML_PROF_END(q4_1_q8_1_w4a8)
+
+// Source function identification
+#define GGML_PROF_MUL_MAT_START(bytes) GGML_PROF_START(ggml_compute_forward_mul_mat, bytes)
+#define GGML_PROF_MUL_MAT_END() GGML_PROF_END(ggml_compute_forward_mul_mat)
+
+#define GGML_PROF_MUL_MAT_ID_START(bytes) GGML_PROF_START(ggml_compute_forward_mul_mat_id, bytes)
+#define GGML_PROF_MUL_MAT_ID_END() GGML_PROF_END(ggml_compute_forward_mul_mat_id)
+
+// Detailed ARM NEON vec_dot profiling
+#define GGML_PROF_VEC_DOT_Q4_K_START(bytes) GGML_PROF_START(ggml_vec_dot_q4_K_q8_K_ARM, bytes)
+#define GGML_PROF_VEC_DOT_Q4_K_END() GGML_PROF_END(ggml_vec_dot_q4_K_q8_K_ARM)
+
+#define GGML_PROF_VEC_DOT_Q4_0_START(bytes) GGML_PROF_START(ggml_vec_dot_q4_0_q8_0_ARM, bytes)
+#define GGML_PROF_VEC_DOT_Q4_0_END() GGML_PROF_END(ggml_vec_dot_q4_0_q8_0_ARM)
+
+#define GGML_PROF_VEC_DOT_Q4_1_START(bytes) GGML_PROF_START(ggml_vec_dot_q4_1_q8_1_ARM, bytes)
+#define GGML_PROF_VEC_DOT_Q4_1_END() GGML_PROF_END(ggml_vec_dot_q4_1_q8_1_ARM)
+
+#define GGML_PROF_VEC_DOT_Q8_0_START(bytes) GGML_PROF_START(ggml_vec_dot_q8_0_q8_0_ARM, bytes)
+#define GGML_PROF_VEC_DOT_Q8_0_END() GGML_PROF_END(ggml_vec_dot_q8_0_q8_0_ARM)
+
+// Layer-specific profiling with source function names
+#define GGML_PROF_RMSNORM_FUNC_START(bytes) GGML_PROF_START(ggml_compute_forward_rms_norm_f32, bytes)
+#define GGML_PROF_RMSNORM_FUNC_END() GGML_PROF_END(ggml_compute_forward_rms_norm_f32)
+
+#define GGML_PROF_ROPE_FUNC_START(bytes) GGML_PROF_START(ggml_compute_forward_rope_f32, bytes)
+#define GGML_PROF_ROPE_FUNC_END() GGML_PROF_END(ggml_compute_forward_rope_f32)
+
+#define GGML_PROF_SOFTMAX_FUNC_START(bytes) GGML_PROF_START(ggml_compute_forward_soft_max_f32, bytes)
+#define GGML_PROF_SOFTMAX_FUNC_END() GGML_PROF_END(ggml_compute_forward_soft_max_f32)
+
 #else // GGML_PROFILING_ENABLED
 
 // No-op macros when profiling is disabled
