@@ -52,28 +52,28 @@ void ggml_profiler_print_results(void);
 void ggml_profiler_save_results(const char* filename);
 ggml_prof_stat_t* ggml_profiler_get_stat(const char* name);
 
-// Timing macros
+// Block-scoped profiling macros to support nested profiling
 #define GGML_PROF_START(name, bytes) \
-    double prof_start_##name = ggml_prof_time_us(); \
-    ggml_prof_stat_t* prof_stat_##name = ggml_profiler_get_stat(#name); \
-    uint64_t prof_bytes_##name = (uint64_t)(bytes);
+    { \
+        double ggml_prof_start_time = ggml_prof_time_us(); \
+        ggml_prof_stat_t* ggml_prof_stat = ggml_profiler_get_stat(#name); \
+        uint64_t ggml_prof_bytes = (uint64_t)(bytes);
 
 #define GGML_PROF_END(name) \
-    do { \
-        double prof_end_time = ggml_prof_time_us(); \
-        double prof_duration = prof_end_time - prof_start_##name; \
-        if (prof_stat_##name) { \
-            prof_stat_##name->total_time_us += prof_duration; \
-            prof_stat_##name->call_count++; \
-            prof_stat_##name->total_bytes += prof_bytes_##name; \
-            if (prof_stat_##name->call_count == 1 || prof_duration < prof_stat_##name->min_time_us) { \
-                prof_stat_##name->min_time_us = prof_duration; \
+        if (ggml_prof_stat) { \
+            double ggml_prof_end_time = ggml_prof_time_us(); \
+            double ggml_prof_duration = ggml_prof_end_time - ggml_prof_start_time; \
+            ggml_prof_stat->total_time_us += ggml_prof_duration; \
+            ggml_prof_stat->call_count++; \
+            ggml_prof_stat->total_bytes += ggml_prof_bytes; \
+            if (ggml_prof_stat->call_count == 1 || ggml_prof_duration < ggml_prof_stat->min_time_us) { \
+                ggml_prof_stat->min_time_us = ggml_prof_duration; \
             } \
-            if (prof_stat_##name->call_count == 1 || prof_duration > prof_stat_##name->max_time_us) { \
-                prof_stat_##name->max_time_us = prof_duration; \
+            if (ggml_prof_stat->call_count == 1 || ggml_prof_duration > ggml_prof_stat->max_time_us) { \
+                ggml_prof_stat->max_time_us = ggml_prof_duration; \
             } \
         } \
-    } while(0)
+    }
 
 // Specialized macros for different operation types
 #define GGML_PROF_QUANTIZE_START(type, elements) \

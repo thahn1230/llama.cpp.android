@@ -1274,7 +1274,7 @@ static void ggml_compute_forward_mul_mat(
     const int ith = params->ith;
     const int nth = params->nth;
 
-    // Start profiling for matrix multiplication
+    // Start general matmul profiling
     GGML_PROF_MATMUL_START(ne01 * ne11, ne00);
 
     enum ggml_type           const vec_dot_type         = type_traits_cpu[src0->type].vec_dot_type;
@@ -1462,8 +1462,28 @@ UseGgmlGemm2:;
         current_chunk = atomic_fetch_add_explicit(&params->threadpool->current_chunk, 1, memory_order_relaxed);
     }
 
-    // End profiling for matrix multiplication
-    GGML_PROF_MATMUL_END();
+    // End profiling based on projection type
+    if (dst->name) {
+        if (strstr(dst->name, "q") || strstr(dst->name, "wq")) {
+            GGML_PROF_Q_PROJ_END();
+        } else if (strstr(dst->name, "k") || strstr(dst->name, "wk")) {
+            GGML_PROF_K_PROJ_END();
+        } else if (strstr(dst->name, "v") || strstr(dst->name, "wv")) {
+            GGML_PROF_V_PROJ_END();
+        } else if (strstr(dst->name, "o") || strstr(dst->name, "wo")) {
+            GGML_PROF_O_PROJ_END();
+        } else if (strstr(dst->name, "up") || strstr(dst->name, "w3")) {
+            GGML_PROF_UP_PROJ_END();
+        } else if (strstr(dst->name, "gate") || strstr(dst->name, "w1")) {
+            GGML_PROF_GATE_PROJ_END();
+        } else if (strstr(dst->name, "down") || strstr(dst->name, "w2")) {
+            GGML_PROF_DOWN_PROJ_END();
+        } else {
+            GGML_PROF_MUL_MAT_END();
+        }
+    } else {
+        GGML_PROF_MUL_MAT_END();
+    }
 }
 
 // ggml_compute_forward_mul_mat_id

@@ -142,6 +142,11 @@ void quantize_row_q8_K(const float * GGML_RESTRICT x, void * GGML_RESTRICT y, in
 //===================================== Dot products =================================
 
 void ggml_vec_dot_q4_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    // Debug: Print when Q4_0 function is called
+    static int q4_0_call_count = 0;
+    if (++q4_0_call_count <= 3) {
+        printf("[DEBUG] ggml_vec_dot_q4_0_q8_0 called (call #%d, n=%d)\n", q4_0_call_count, n);
+    }
     GGML_PROF_VEC_DOT_Q4_0_START(n * (sizeof(block_q4_0) + sizeof(block_q8_0)));
     const int qk = QK8_0;
     const int nb = n / qk;
@@ -437,6 +442,11 @@ void ggml_vec_dot_q4_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
 }
 
 void ggml_vec_dot_q4_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    // Debug: Print when Q4_1 function is called
+    static int q4_1_call_count = 0;
+    if (++q4_1_call_count <= 3) {
+        printf("[DEBUG] ggml_vec_dot_q4_1_q8_1 called (call #%d, n=%d)\n", q4_1_call_count, n);
+    }
     GGML_PROF_VEC_DOT_Q4_1_START(n * (sizeof(block_q4_1) + sizeof(block_q8_1)));
     const int qk = QK8_1;
     const int nb = n / qk;
@@ -837,6 +847,11 @@ void ggml_vec_dot_q5_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const voi
 }
 
 void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    // Debug: Print when Q8_0 function is called
+    static int q8_0_call_count = 0;
+    if (++q8_0_call_count <= 3) {
+        printf("[DEBUG] ggml_vec_dot_q8_0_q8_0 called (call #%d, n=%d)\n", q8_0_call_count, n);
+    }
     GGML_PROF_VEC_DOT_Q8_0_START(n * 2 * sizeof(block_q8_0));
     const int qk = QK8_0;
     const int nb = n / qk;
@@ -2152,6 +2167,11 @@ void ggml_vec_dot_q3_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const voi
 }
 
 void ggml_vec_dot_q4_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    // Debug: Print when Q4_K function is called
+    static int q4_K_call_count = 0;
+    if (++q4_K_call_count <= 3) {
+        printf("[DEBUG] ggml_vec_dot_q4_K_q8_K called (call #%d, n=%d)\n", q4_K_call_count, n);
+    }
     GGML_PROF_VEC_DOT_Q4_K_START(n * (sizeof(block_q4_K) + sizeof(block_q8_K)));
     assert(n % QK_K == 0);
 #ifdef __ARM_FEATURE_MATMUL_INT8

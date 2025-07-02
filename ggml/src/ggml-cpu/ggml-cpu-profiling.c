@@ -175,9 +175,20 @@ void ggml_profiler_print_results(void) {
     
     print_separator();
     
-    // w4a8 vs w8a8 Detailed Analysis
-    printf("\n🔬 w4a8 vs w8a8 Dequantization Analysis:\n");
-    print_separator();
+         // w4a8 vs w8a8 Detailed Analysis  
+     printf("\n🔬 w4a8 vs w8a8 Dequantization Analysis:\n");
+     print_separator();
+     
+     // Debug: Show all quantization-related operations found
+     printf("DEBUG - Found quantization operations:\n");
+     for (int i = 0; i < g_ggml_profiler.count; i++) {
+         const char* name = g_ggml_profiler.stats[i].name;
+         if (strstr(name, "q4") || strstr(name, "q8") || strstr(name, "vec_dot") || 
+             strstr(name, "dequant") || strstr(name, "memory_load") || strstr(name, "dot_compute")) {
+             printf("  - %s: %lu calls\n", name, g_ggml_profiler.stats[i].call_count);
+         }
+     }
+     printf("\n");
     
     ggml_prof_stat_t* w4_dequant = NULL;
     ggml_prof_stat_t* memory_load = NULL;
@@ -251,19 +262,34 @@ void ggml_profiler_print_results(void) {
                 (w8_avg < w4_avg) ? "FASTER" : "SLOWER");
      }
     
-    // Transformer Layer Analysis
-    printf("\n🧠 Transformer Layer Analysis:\n");
-    print_separator();
-    
-    ggml_prof_stat_t* rmsnorm = NULL;
-    ggml_prof_stat_t* rope = NULL;
-    ggml_prof_stat_t* softmax = NULL;
+         // Transformer Layer Analysis
+     printf("\n🧠 Transformer Layer Analysis:\n");
+     print_separator();
+     
+     ggml_prof_stat_t* rmsnorm = NULL;
+     ggml_prof_stat_t* rope = NULL;
+     ggml_prof_stat_t* softmax = NULL;
+     ggml_prof_stat_t* q_proj = NULL;
+     ggml_prof_stat_t* k_proj = NULL;
+     ggml_prof_stat_t* v_proj = NULL;
+     ggml_prof_stat_t* o_proj = NULL;
+     ggml_prof_stat_t* up_proj = NULL;
+     ggml_prof_stat_t* gate_proj = NULL;
+     ggml_prof_stat_t* down_proj = NULL;
     
          for (int i = 0; i < g_ggml_profiler.count; i++) {
-         // New function-specific names
+         // Layer operations
          if (strcmp(g_ggml_profiler.stats[i].name, "ggml_compute_forward_rms_norm_f32") == 0) rmsnorm = &g_ggml_profiler.stats[i];
          else if (strcmp(g_ggml_profiler.stats[i].name, "ggml_compute_forward_rope_f32") == 0) rope = &g_ggml_profiler.stats[i];
          else if (strcmp(g_ggml_profiler.stats[i].name, "ggml_compute_forward_soft_max_f32") == 0) softmax = &g_ggml_profiler.stats[i];
+         // Projection operations
+         else if (strcmp(g_ggml_profiler.stats[i].name, "q_projection") == 0) q_proj = &g_ggml_profiler.stats[i];
+         else if (strcmp(g_ggml_profiler.stats[i].name, "k_projection") == 0) k_proj = &g_ggml_profiler.stats[i];
+         else if (strcmp(g_ggml_profiler.stats[i].name, "v_projection") == 0) v_proj = &g_ggml_profiler.stats[i];
+         else if (strcmp(g_ggml_profiler.stats[i].name, "o_projection") == 0) o_proj = &g_ggml_profiler.stats[i];
+         else if (strcmp(g_ggml_profiler.stats[i].name, "up_projection") == 0) up_proj = &g_ggml_profiler.stats[i];
+         else if (strcmp(g_ggml_profiler.stats[i].name, "gate_projection") == 0) gate_proj = &g_ggml_profiler.stats[i];
+         else if (strcmp(g_ggml_profiler.stats[i].name, "down_projection") == 0) down_proj = &g_ggml_profiler.stats[i];
          // Legacy names for backward compatibility
          else if (strcmp(g_ggml_profiler.stats[i].name, "rmsnorm") == 0 && !rmsnorm) rmsnorm = &g_ggml_profiler.stats[i];
          else if (strcmp(g_ggml_profiler.stats[i].name, "rope") == 0 && !rope) rope = &g_ggml_profiler.stats[i];
@@ -284,6 +310,45 @@ void ggml_profiler_print_results(void) {
          printf("Softmax            : %8.2f ms (%6lu calls) - %.1f MB/s [ggml_compute_forward_soft_max]\n", 
                 softmax->total_time_us / 1000.0, softmax->call_count,
                 calculate_bandwidth_mbps(softmax->total_bytes, softmax->total_time_us));
+     }
+     
+     // Attention projections
+     if (q_proj && q_proj->call_count > 0) {
+         printf("Q Projection       : %8.2f ms (%6lu calls) - %.1f MB/s [mul_mat:q]\n", 
+                q_proj->total_time_us / 1000.0, q_proj->call_count,
+                calculate_bandwidth_mbps(q_proj->total_bytes, q_proj->total_time_us));
+     }
+     if (k_proj && k_proj->call_count > 0) {
+         printf("K Projection       : %8.2f ms (%6lu calls) - %.1f MB/s [mul_mat:k]\n", 
+                k_proj->total_time_us / 1000.0, k_proj->call_count,
+                calculate_bandwidth_mbps(k_proj->total_bytes, k_proj->total_time_us));
+     }
+     if (v_proj && v_proj->call_count > 0) {
+         printf("V Projection       : %8.2f ms (%6lu calls) - %.1f MB/s [mul_mat:v]\n", 
+                v_proj->total_time_us / 1000.0, v_proj->call_count,
+                calculate_bandwidth_mbps(v_proj->total_bytes, v_proj->total_time_us));
+     }
+     if (o_proj && o_proj->call_count > 0) {
+         printf("O Projection       : %8.2f ms (%6lu calls) - %.1f MB/s [mul_mat:o]\n", 
+                o_proj->total_time_us / 1000.0, o_proj->call_count,
+                calculate_bandwidth_mbps(o_proj->total_bytes, o_proj->total_time_us));
+     }
+     
+     // FFN projections
+     if (up_proj && up_proj->call_count > 0) {
+         printf("Up Projection      : %8.2f ms (%6lu calls) - %.1f MB/s [mul_mat:up]\n", 
+                up_proj->total_time_us / 1000.0, up_proj->call_count,
+                calculate_bandwidth_mbps(up_proj->total_bytes, up_proj->total_time_us));
+     }
+     if (gate_proj && gate_proj->call_count > 0) {
+         printf("Gate Projection    : %8.2f ms (%6lu calls) - %.1f MB/s [mul_mat:gate]\n", 
+                gate_proj->total_time_us / 1000.0, gate_proj->call_count,
+                calculate_bandwidth_mbps(gate_proj->total_bytes, gate_proj->total_time_us));
+     }
+     if (down_proj && down_proj->call_count > 0) {
+         printf("Down Projection    : %8.2f ms (%6lu calls) - %.1f MB/s [mul_mat:down]\n", 
+                down_proj->total_time_us / 1000.0, down_proj->call_count,
+                calculate_bandwidth_mbps(down_proj->total_bytes, down_proj->total_time_us));
      }
     
     print_separator();
