@@ -15,6 +15,9 @@
 #include <string>
 #include <vector>
 
+// Include ARM NEON profiling for quantization and dot product operations
+#include "../../ggml/src/ggml-cpu/ggml-cpu-profiling.h"
+
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <signal.h>
 #include <unistd.h>
@@ -124,6 +127,12 @@ int main(int argc, char ** argv) {
 
     llama_backend_init();
     llama_numa_init(params.numa);
+
+    // Initialize ARM NEON profiling for w4a8/w8a8 quantization and matmul operations
+    #if GGML_PROFILING_ENABLED
+    ggml_profiler_init();
+    LOG_INF("%s: ARM NEON profiling enabled for quantization/matmul operations\n", __func__);
+    #endif
 
     llama_model * model = nullptr;
     llama_context * ctx = nullptr;
@@ -967,6 +976,17 @@ int main(int argc, char ** argv) {
 
     LOG("\n\n");
     common_perf_print(ctx, smpl);
+
+    // Print detailed ARM NEON profiling results for w4a8/w8a8 operations
+    #if GGML_PROFILING_ENABLED
+    LOG("\n");
+    LOG("========================================\n");
+    LOG("       ARM NEON PROFILING RESULTS      \n");
+    LOG("     w4a8/w8a8 Quantization & MatMul   \n");
+    LOG("========================================\n");
+    ggml_profiler_print_results();
+    LOG("========================================\n");
+    #endif
 
     common_sampler_free(smpl);
 

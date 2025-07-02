@@ -14,6 +14,7 @@
 #include "vec.h"
 #include "ops.h"
 #include "ggml.h"
+#include "ggml-cpu-profiling.h"
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h> // using malloc.h with MSC/MINGW
@@ -1247,7 +1248,10 @@ static void ggml_compute_forward_mul_mat_one_chunk(
                 //}
 
                 for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ir0 += num_rows_per_vec_dot) {
+                    // Profile vector dot product
+                    GGML_PROF_START(vec_dot, ne00 * num_rows_per_vec_dot * ggml_type_size(type));
                     vec_dot(ne00, &tmp[ir0 - iir0], (num_rows_per_vec_dot > 1 ? 16 : 0), src0_row + ir0 * nb01, (num_rows_per_vec_dot > 1 ? nb01 : 0), src1_col, (num_rows_per_vec_dot > 1 ? src1_col_stride : 0), num_rows_per_vec_dot);
+                    GGML_PROF_END(vec_dot);
                 }
 
                 for (int cn = 0; cn < num_rows_per_vec_dot; ++cn) {
@@ -1269,6 +1273,9 @@ static void ggml_compute_forward_mul_mat(
 
     const int ith = params->ith;
     const int nth = params->nth;
+
+    // Start profiling for matrix multiplication
+    GGML_PROF_MATMUL_START(ne01 * ne11, ne00);
 
     enum ggml_type           const vec_dot_type         = type_traits_cpu[src0->type].vec_dot_type;
     ggml_from_float_t        const from_float           = type_traits_cpu[vec_dot_type].from_float;
@@ -1348,9 +1355,13 @@ UseGgmlGemm1:;
                     size_t bs = ggml_blck_size(vec_dot_type);
                     int64_t ne10_block_start = (ith * ne10/bs) / nth;
                     int64_t ne10_block_end   = ((ith + 1) * ne10/bs) / nth;
+                    
+                    // Profile quantization
+                    GGML_PROF_START(quantization, (ne10_block_end - ne10_block_start) * bs * sizeof(float));
                     from_float((float *)((char *) src1->data + i13*nb13 + i12*nb12 + i11*nb11 + ne10_block_start*bs*nb10),
                                (void *)               (wdata + i13*nbw3 + i12*nbw2 + i11*nbw1 + ne10_block_start*nbw0),
                                (ne10_block_end - ne10_block_start) * bs);
+                    GGML_PROF_END(quantization);
                 }
             }
         }
@@ -1450,6 +1461,9 @@ UseGgmlGemm2:;
 
         current_chunk = atomic_fetch_add_explicit(&params->threadpool->current_chunk, 1, memory_order_relaxed);
     }
+
+    // End profiling for matrix multiplication
+    GGML_PROF_MATMUL_END();
 }
 
 // ggml_compute_forward_mul_mat_id
@@ -1611,9 +1625,13 @@ static void ggml_compute_forward_mul_mat_id(
                     size_t bs = ggml_blck_size(vec_dot_type);
                     int64_t ne10_block_start = (ith * ne10/bs) / nth;
                     int64_t ne10_block_end   = ((ith + 1) * ne10/bs) / nth;
+                    
+                    // Profile quantization (mul_mat_id)
+                    GGML_PROF_START(quantization_id, (ne10_block_end - ne10_block_start) * bs * sizeof(float));
                     from_float((float *)((char *) src1->data + i13*nb13 + i12*nb12 + i11*nb11 + ne10_block_start*bs*nb10),
                                (void *)               (wdata + i13*nbw3 + i12*nbw2 + i11*nbw1 + ne10_block_start*nbw0),
                                (ne10_block_end - ne10_block_start) * bs);
+                    GGML_PROF_END(quantization_id);
                 }
             }
         }
