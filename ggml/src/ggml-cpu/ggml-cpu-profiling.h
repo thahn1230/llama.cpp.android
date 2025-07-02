@@ -106,6 +106,51 @@ ggml_prof_stat_t* ggml_profiler_get_stat(const char* name);
 #define GGML_PROF_DEQUANT_END(type) \
     GGML_PROF_END(dequant_##type)
 
+// Detailed dequantization profiling for w4a8 vs w8a8 analysis
+#define GGML_PROF_W4_DEQUANT_START(bytes) GGML_PROF_START(w4_dequant, bytes)
+#define GGML_PROF_W4_DEQUANT_END() GGML_PROF_END(w4_dequant)
+
+#define GGML_PROF_MEMORY_LOAD_START(bytes) GGML_PROF_START(memory_load, bytes)
+#define GGML_PROF_MEMORY_LOAD_END() GGML_PROF_END(memory_load)
+
+#define GGML_PROF_DOT_COMPUTE_START(bytes) GGML_PROF_START(dot_compute, bytes)
+#define GGML_PROF_DOT_COMPUTE_END() GGML_PROF_END(dot_compute)
+
+// Transformer layer-specific profiling
+#define GGML_PROF_RMSNORM_START(bytes) GGML_PROF_START(rmsnorm, bytes)
+#define GGML_PROF_RMSNORM_END() GGML_PROF_END(rmsnorm)
+
+#define GGML_PROF_ROPE_START(bytes) GGML_PROF_START(rope, bytes)
+#define GGML_PROF_ROPE_END() GGML_PROF_END(rope)
+
+#define GGML_PROF_SOFTMAX_START(bytes) GGML_PROF_START(softmax, bytes)
+#define GGML_PROF_SOFTMAX_END() GGML_PROF_END(softmax)
+
+#define GGML_PROF_ATTENTION_START(bytes) GGML_PROF_START(attention, bytes)
+#define GGML_PROF_ATTENTION_END() GGML_PROF_END(attention)
+
+// Layer projection profiling (Q, K, V, O, Up, Gate, Down)
+#define GGML_PROF_Q_PROJ_START(bytes) GGML_PROF_START(q_projection, bytes)
+#define GGML_PROF_Q_PROJ_END() GGML_PROF_END(q_projection)
+
+#define GGML_PROF_K_PROJ_START(bytes) GGML_PROF_START(k_projection, bytes)
+#define GGML_PROF_K_PROJ_END() GGML_PROF_END(k_projection)
+
+#define GGML_PROF_V_PROJ_START(bytes) GGML_PROF_START(v_projection, bytes)
+#define GGML_PROF_V_PROJ_END() GGML_PROF_END(v_projection)
+
+#define GGML_PROF_O_PROJ_START(bytes) GGML_PROF_START(o_projection, bytes)
+#define GGML_PROF_O_PROJ_END() GGML_PROF_END(o_projection)
+
+#define GGML_PROF_UP_PROJ_START(bytes) GGML_PROF_START(up_projection, bytes)
+#define GGML_PROF_UP_PROJ_END() GGML_PROF_END(up_projection)
+
+#define GGML_PROF_GATE_PROJ_START(bytes) GGML_PROF_START(gate_projection, bytes)
+#define GGML_PROF_GATE_PROJ_END() GGML_PROF_END(gate_projection)
+
+#define GGML_PROF_DOWN_PROJ_START(bytes) GGML_PROF_START(down_projection, bytes)
+#define GGML_PROF_DOWN_PROJ_END() GGML_PROF_END(down_projection)
+
 #else // GGML_PROFILING_ENABLED
 
 // No-op macros when profiling is disabled

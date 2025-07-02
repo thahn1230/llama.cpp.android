@@ -551,14 +551,20 @@ void ggml_vec_dot_q4_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const voi
 
         const uint8x16_t m4b = vdupq_n_u8(0x0F);
 
+        // Memory load profiling (w4a8: loading 4-bit weights)
+        GGML_PROF_MEMORY_LOAD_START(sizeof(block_q4_1) * 2);
         const uint8x16_t v0_0 = vld1q_u8(x0->qs);
         const uint8x16_t v0_1 = vld1q_u8(x1->qs);
+        GGML_PROF_MEMORY_LOAD_END();
 
+        // Weight dequantization profiling (w4a8: 4-bit -> 8-bit conversion)
+        GGML_PROF_W4_DEQUANT_START(32); // 16 elements * 2 blocks
         // 4-bit -> 8-bit
         const int8x16_t v0_0l = vreinterpretq_s8_u8(vandq_u8  (v0_0, m4b));
         const int8x16_t v0_0h = vreinterpretq_s8_u8(vshrq_n_u8(v0_0, 4));
         const int8x16_t v0_1l = vreinterpretq_s8_u8(vandq_u8  (v0_1, m4b));
         const int8x16_t v0_1h = vreinterpretq_s8_u8(vshrq_n_u8(v0_1, 4));
+        GGML_PROF_W4_DEQUANT_END();
 
         // load y
         const int8x16_t v1_0l = vld1q_s8(y0->qs);
@@ -566,12 +572,15 @@ void ggml_vec_dot_q4_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const voi
         const int8x16_t v1_1l = vld1q_s8(y1->qs);
         const int8x16_t v1_1h = vld1q_s8(y1->qs + 16);
 
+        // Dot product computation profiling (w4a8)
+        GGML_PROF_DOT_COMPUTE_START(64); // 32 elements * 2 blocks
         // dot product into int32x4_t
         const int32x4_t p_0 = ggml_vdotq_s32(ggml_vdotq_s32(vdupq_n_s32(0), v0_0l, v1_0l), v0_0h, v1_0h);
         const int32x4_t p_1 = ggml_vdotq_s32(ggml_vdotq_s32(vdupq_n_s32(0), v0_1l, v1_1l), v0_1h, v1_1h);
 
         sumv0 = vmlaq_n_f32(sumv0, vcvtq_f32_s32(p_0), GGML_FP16_TO_FP32(x0->d)*GGML_FP16_TO_FP32(y0->d));
         sumv1 = vmlaq_n_f32(sumv1, vcvtq_f32_s32(p_1), GGML_FP16_TO_FP32(x1->d)*GGML_FP16_TO_FP32(y1->d));
+        GGML_PROF_DOT_COMPUTE_END();
     }
 
     sumf = vaddvq_f32(sumv0) + vaddvq_f32(sumv1) + summs;
@@ -862,6 +871,8 @@ void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
             const block_q8_0 * GGML_RESTRICT b_x1 = &vx1[i];
             const block_q8_0 * GGML_RESTRICT b_y1 = &vy1[i];
 
+            // Memory load profiling (w8a8: loading 8-bit weights - NO dequantization needed)
+            GGML_PROF_MEMORY_LOAD_START(sizeof(block_q8_0) * 2);
             const int8x16_t x0_l = vld1q_s8(b_x0->qs);
             const int8x16_t x0_h = vld1q_s8(b_x0->qs + 16);
             const int8x16_t x1_l = vld1q_s8(b_x1->qs);
@@ -872,6 +883,7 @@ void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
             const int8x16_t y0_h = vld1q_s8(b_y0->qs + 16);
             const int8x16_t y1_l = vld1q_s8(b_y1->qs);
             const int8x16_t y1_h = vld1q_s8(b_y1->qs + 16);
+            GGML_PROF_MEMORY_LOAD_END();
 
             float32_t _scale[4] = {
                 GGML_FP16_TO_FP32(b_x0->d)*GGML_FP16_TO_FP32(b_y0->d),
@@ -1040,6 +1052,8 @@ void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
         const block_q8_0 * GGML_RESTRICT y0 = &y[ib + 0];
         const block_q8_0 * GGML_RESTRICT y1 = &y[ib + 1];
 
+        // Memory load profiling (w8a8: loading 8-bit weights - NO dequantization needed)
+        GGML_PROF_MEMORY_LOAD_START(sizeof(block_q8_0) * 2);
         const int8x16_t x0_0 = vld1q_s8(x0->qs);
         const int8x16_t x0_1 = vld1q_s8(x0->qs + 16);
         const int8x16_t x1_0 = vld1q_s8(x1->qs);
@@ -1050,7 +1064,10 @@ void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
         const int8x16_t y0_1 = vld1q_s8(y0->qs + 16);
         const int8x16_t y1_0 = vld1q_s8(y1->qs);
         const int8x16_t y1_1 = vld1q_s8(y1->qs + 16);
+        GGML_PROF_MEMORY_LOAD_END();
 
+        // Dot product computation profiling (w8a8: direct 8bit computation - NO dequantization)
+        GGML_PROF_DOT_COMPUTE_START(64); // 32 elements * 2 blocks
         sumv0 = vmlaq_n_f32(sumv0, vcvtq_f32_s32(vaddq_s32(
                         ggml_vdotq_s32(vdupq_n_s32(0), x0_0, y0_0),
                         ggml_vdotq_s32(vdupq_n_s32(0), x0_1, y0_1))), GGML_FP16_TO_FP32(x0->d)*GGML_FP16_TO_FP32(y0->d));
@@ -1058,6 +1075,7 @@ void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
         sumv1 = vmlaq_n_f32(sumv1, vcvtq_f32_s32(vaddq_s32(
                         ggml_vdotq_s32(vdupq_n_s32(0), x1_0, y1_0),
                         ggml_vdotq_s32(vdupq_n_s32(0), x1_1, y1_1))), GGML_FP16_TO_FP32(x1->d)*GGML_FP16_TO_FP32(y1->d));
+        GGML_PROF_DOT_COMPUTE_END();
     }
 
     sumf = vaddvq_f32(sumv0) + vaddvq_f32(sumv1);

@@ -174,6 +174,91 @@ void ggml_profiler_print_results(void) {
     }
     
     print_separator();
+    
+    // w4a8 vs w8a8 Detailed Analysis
+    printf("\n🔬 w4a8 vs w8a8 Dequantization Analysis:\n");
+    print_separator();
+    
+    ggml_prof_stat_t* w4_dequant = NULL;
+    ggml_prof_stat_t* memory_load = NULL;
+    ggml_prof_stat_t* dot_compute = NULL;
+    ggml_prof_stat_t* q4_w4a8 = NULL;
+    ggml_prof_stat_t* q8_w8a8 = NULL;
+    
+    // Find relevant stats
+    for (int i = 0; i < g_ggml_profiler.count; i++) {
+        if (strcmp(g_ggml_profiler.stats[i].name, "w4_dequant") == 0) w4_dequant = &g_ggml_profiler.stats[i];
+        else if (strcmp(g_ggml_profiler.stats[i].name, "memory_load") == 0) memory_load = &g_ggml_profiler.stats[i];
+        else if (strcmp(g_ggml_profiler.stats[i].name, "dot_compute") == 0) dot_compute = &g_ggml_profiler.stats[i];
+        else if (strcmp(g_ggml_profiler.stats[i].name, "q4_1_q8_1_w4a8") == 0) q4_w4a8 = &g_ggml_profiler.stats[i];
+        else if (strcmp(g_ggml_profiler.stats[i].name, "q8_0_q8_0_w8a8") == 0) q8_w8a8 = &g_ggml_profiler.stats[i];
+    }
+    
+    if (w4_dequant && w4_dequant->call_count > 0) {
+        printf("W4 Dequantization  : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               w4_dequant->total_time_us / 1000.0, w4_dequant->call_count, 
+               calculate_bandwidth_mbps(w4_dequant->total_bytes, w4_dequant->total_time_us));
+    }
+    if (memory_load && memory_load->call_count > 0) {
+        printf("Memory Load        : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               memory_load->total_time_us / 1000.0, memory_load->call_count,
+               calculate_bandwidth_mbps(memory_load->total_bytes, memory_load->total_time_us));
+    }
+    if (dot_compute && dot_compute->call_count > 0) {
+        printf("Dot Computation    : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               dot_compute->total_time_us / 1000.0, dot_compute->call_count,
+               calculate_bandwidth_mbps(dot_compute->total_bytes, dot_compute->total_time_us));
+    }
+    if (q4_w4a8 && q4_w4a8->call_count > 0) {
+        printf("w4a8 Total         : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               q4_w4a8->total_time_us / 1000.0, q4_w4a8->call_count,
+               calculate_bandwidth_mbps(q4_w4a8->total_bytes, q4_w4a8->total_time_us));
+    }
+    if (q8_w8a8 && q8_w8a8->call_count > 0) {
+        printf("w8a8 Total         : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               q8_w8a8->total_time_us / 1000.0, q8_w8a8->call_count,
+               calculate_bandwidth_mbps(q8_w8a8->total_bytes, q8_w8a8->total_time_us));
+    }
+    
+    if (q4_w4a8 && q8_w8a8 && q4_w4a8->call_count > 0 && q8_w8a8->call_count > 0) {
+        double w4a8_avg = q4_w4a8->total_time_us / q4_w4a8->call_count;
+        double w8a8_avg = q8_w8a8->total_time_us / q8_w8a8->call_count;
+        printf("Performance Ratio  : w8a8 is %.2fx %s than w4a8\n", 
+               fabs(w4a8_avg / w8a8_avg), 
+               (w8a8_avg < w4a8_avg) ? "FASTER" : "SLOWER");
+    }
+    
+    // Transformer Layer Analysis
+    printf("\n🧠 Transformer Layer Analysis:\n");
+    print_separator();
+    
+    ggml_prof_stat_t* rmsnorm = NULL;
+    ggml_prof_stat_t* rope = NULL;
+    ggml_prof_stat_t* softmax = NULL;
+    
+    for (int i = 0; i < g_ggml_profiler.count; i++) {
+        if (strcmp(g_ggml_profiler.stats[i].name, "rmsnorm") == 0) rmsnorm = &g_ggml_profiler.stats[i];
+        else if (strcmp(g_ggml_profiler.stats[i].name, "rope") == 0) rope = &g_ggml_profiler.stats[i];
+        else if (strcmp(g_ggml_profiler.stats[i].name, "softmax") == 0) softmax = &g_ggml_profiler.stats[i];
+    }
+    
+    if (rmsnorm && rmsnorm->call_count > 0) {
+        printf("RMSNorm            : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               rmsnorm->total_time_us / 1000.0, rmsnorm->call_count,
+               calculate_bandwidth_mbps(rmsnorm->total_bytes, rmsnorm->total_time_us));
+    }
+    if (rope && rope->call_count > 0) {
+        printf("RoPE               : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               rope->total_time_us / 1000.0, rope->call_count,
+               calculate_bandwidth_mbps(rope->total_bytes, rope->total_time_us));
+    }
+    if (softmax && softmax->call_count > 0) {
+        printf("Softmax            : %8.2f ms (%6lu calls) - %.1f MB/s\n", 
+               softmax->total_time_us / 1000.0, softmax->call_count,
+               calculate_bandwidth_mbps(softmax->total_bytes, softmax->total_time_us));
+    }
+    
+    print_separator();
     printf("\n");
 }
 
