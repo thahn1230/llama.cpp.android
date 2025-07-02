@@ -9,26 +9,37 @@
 // Global profiler instance
 ggml_profiler_t g_ggml_profiler = {0};
 
-// Profiling stack for nested contexts
-ggml_prof_ctx_t ggml_prof_stack[8] = {0};
-int ggml_prof_stack_depth = 0;
+// Thread-local profiling stack
+__thread ggml_prof_ctx_t ggml_prof_stack[GGML_MAX_PROF_DEPTH] = {0};
+__thread int ggml_prof_stack_depth = 0;
 
 void ggml_profiler_init(void) {
+    if (g_ggml_profiler.initialized) {
+        return;
+    }
+    
     memset(&g_ggml_profiler, 0, sizeof(ggml_profiler_t));
+    pthread_mutex_init(&g_ggml_profiler.mutex, NULL);
     g_ggml_profiler.session_start_time_us = ggml_prof_time_us();
-    ggml_prof_stack_depth = 0;
+    g_ggml_profiler.initialized = 1;
     printf("[GGML PROFILER] Profiling initialized\n");
 }
 
 void ggml_profiler_reset(void) {
+    if (!g_ggml_profiler.initialized) {
+        return;
+    }
+    
+    pthread_mutex_lock(&g_ggml_profiler.mutex);
     g_ggml_profiler.count = 0;
     memset(g_ggml_profiler.stats, 0, sizeof(g_ggml_profiler.stats));
     g_ggml_profiler.session_start_time_us = ggml_prof_time_us();
+    pthread_mutex_unlock(&g_ggml_profiler.mutex);
     printf("[GGML PROFILER] Profiling reset\n");
 }
 
 ggml_prof_stat_t* ggml_profiler_get_stat(const char* name) {
-    if (!name) return NULL;
+    if (!name || !g_ggml_profiler.initialized) return NULL;
     
     // Try to find existing stat
     for (int i = 0; i < g_ggml_profiler.count; i++) {
@@ -38,7 +49,7 @@ ggml_prof_stat_t* ggml_profiler_get_stat(const char* name) {
     }
     
     // Create new stat if we have space
-    if (g_ggml_profiler.count < 64) {
+    if (g_ggml_profiler.count < 128) {  // Increased from 64 to 128
         ggml_prof_stat_t* stat = &g_ggml_profiler.stats[g_ggml_profiler.count];
         strncpy(stat->name, name, sizeof(stat->name) - 1);
         stat->name[sizeof(stat->name) - 1] = '\0';

@@ -5,6 +5,7 @@
 #include <time.h>
 #include <string.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,49 +38,61 @@ typedef struct {
 } ggml_prof_stat_t;
 
 typedef struct {
-    ggml_prof_stat_t stats[64];
+    ggml_prof_stat_t stats[128];  // Increased from 64 to 128
     int count;
     double session_start_time_us;
+    pthread_mutex_t mutex;
+    int initialized;
 } ggml_profiler_t;
 
 // Global profiler instance
 extern ggml_profiler_t g_ggml_profiler;
 
-// Profiling functions
-void ggml_profiler_init(void);
-void ggml_profiler_reset(void);
-void ggml_profiler_print_results(void);
-void ggml_profiler_save_results(const char* filename);
-ggml_prof_stat_t* ggml_profiler_get_stat(const char* name);
-
-// Function-based profiling to avoid variable scope issues
+// Thread-local profiling context
 typedef struct {
     double start_time;
     ggml_prof_stat_t* stat;
     uint64_t bytes;
 } ggml_prof_ctx_t;
 
-// Stack for nested profiling contexts
-extern ggml_prof_ctx_t ggml_prof_stack[8];
-extern int ggml_prof_stack_depth;
+// Thread-local storage for profiling stack
+#define GGML_MAX_PROF_DEPTH 32  // Increased from 8 to 32
 
-// Function-based profiling API
+extern __thread ggml_prof_ctx_t ggml_prof_stack[GGML_MAX_PROF_DEPTH];
+extern __thread int ggml_prof_stack_depth;
+
+// Profiling functions with thread safety
+void ggml_profiler_init(void);
+void ggml_profiler_reset(void);
+void ggml_profiler_print_results(void);
+void ggml_profiler_save_results(const char* filename);
+ggml_prof_stat_t* ggml_profiler_get_stat(const char* name);
+
+// Thread-safe profiling API
 static inline void ggml_prof_start_impl(const char* name, uint64_t bytes) {
-    if (ggml_prof_stack_depth < 7) {
+    if (!g_ggml_profiler.initialized) return;
+    
+    if (ggml_prof_stack_depth < GGML_MAX_PROF_DEPTH - 1) {
         ggml_prof_stack[ggml_prof_stack_depth].start_time = ggml_prof_time_us();
+        pthread_mutex_lock(&g_ggml_profiler.mutex);
         ggml_prof_stack[ggml_prof_stack_depth].stat = ggml_profiler_get_stat(name);
+        pthread_mutex_unlock(&g_ggml_profiler.mutex);
         ggml_prof_stack[ggml_prof_stack_depth].bytes = bytes;
         ggml_prof_stack_depth++;
     }
 }
 
 static inline void ggml_prof_end_impl(void) {
+    if (!g_ggml_profiler.initialized) return;
+    
     if (ggml_prof_stack_depth > 0) {
         ggml_prof_stack_depth--;
         ggml_prof_ctx_t* ctx = &ggml_prof_stack[ggml_prof_stack_depth];
         if (ctx->stat) {
             double end_time = ggml_prof_time_us();
             double duration = end_time - ctx->start_time;
+            
+            pthread_mutex_lock(&g_ggml_profiler.mutex);
             ctx->stat->total_time_us += duration;
             ctx->stat->call_count++;
             ctx->stat->total_bytes += ctx->bytes;
@@ -89,6 +102,7 @@ static inline void ggml_prof_end_impl(void) {
             if (ctx->stat->call_count == 1 || duration > ctx->stat->max_time_us) {
                 ctx->stat->max_time_us = duration;
             }
+            pthread_mutex_unlock(&g_ggml_profiler.mutex);
         }
     }
 }
