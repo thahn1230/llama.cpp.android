@@ -24,7 +24,7 @@ static inline double ggml_prof_time_us(void) {
     return tv.tv_sec * 1000000.0 + tv.tv_usec;
 }
 
-// Profiling data structure
+// Profiling data structure  
 typedef struct {
     char name[64];
     double total_time_us;
@@ -32,6 +32,8 @@ typedef struct {
     uint64_t total_bytes;
     double min_time_us;
     double max_time_us;
+    uint32_t layer_id;
+    char layer_type[32];
 } ggml_prof_stat_t;
 
 typedef struct {

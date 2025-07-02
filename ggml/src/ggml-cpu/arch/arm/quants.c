@@ -38,6 +38,7 @@ static const uint64_t table_b2b_1[1 << 8] = { B8(10, 00) }; // (!b) << 4
 #endif
 
 void quantize_row_q8_0(const float * GGML_RESTRICT x, void * GGML_RESTRICT vy, int64_t k) {
+    GGML_PROF_START(quantize_row_q8_0_arm_neon, k * sizeof(float));
     assert(QK8_0 == 32);
     assert(k % QK8_0 == 0);
     const int nb = k / QK8_0;
@@ -79,9 +80,11 @@ void quantize_row_q8_0(const float * GGML_RESTRICT x, void * GGML_RESTRICT vy, i
     // scalar
     quantize_row_q8_0_ref(x, y, k);
 #endif
+    GGML_PROF_END(quantize_row_q8_0_arm_neon);
 }
 
 void quantize_row_q8_1(const float * GGML_RESTRICT x, void * GGML_RESTRICT vy, int64_t k) {
+    GGML_PROF_START(quantize_row_q8_1_arm_neon, k * sizeof(float));
     assert(k % QK8_1 == 0);
     const int nb = k / QK8_1;
 
@@ -127,6 +130,7 @@ void quantize_row_q8_1(const float * GGML_RESTRICT x, void * GGML_RESTRICT vy, i
     // scalar
     quantize_row_q8_1_ref(x, y, k);
 #endif
+    GGML_PROF_END(quantize_row_q8_1_arm_neon);
 }
 
 // placeholder implementation for Apple targets
@@ -137,6 +141,7 @@ void quantize_row_q8_K(const float * GGML_RESTRICT x, void * GGML_RESTRICT y, in
 //===================================== Dot products =================================
 
 void ggml_vec_dot_q4_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    GGML_PROF_START(ggml_vec_dot_q4_0_q8_0_w4a8_arm_neon, n * (sizeof(block_q4_0) + sizeof(block_q8_0)));
     const int qk = QK8_0;
     const int nb = n / qk;
 
@@ -427,9 +432,11 @@ void ggml_vec_dot_q4_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
     }
 
     *s = sumf;
+    GGML_PROF_END(ggml_vec_dot_q4_0_q8_0_w4a8_arm_neon);
 }
 
 void ggml_vec_dot_q4_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    GGML_PROF_START(ggml_vec_dot_q4_1_q8_1_w4a8_arm_neon, n * (sizeof(block_q4_1) + sizeof(block_q8_1)));
     const int qk = QK8_1;
     const int nb = n / qk;
 
@@ -586,6 +593,7 @@ void ggml_vec_dot_q4_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const voi
     }
 
     *s = sumf;
+    GGML_PROF_END(ggml_vec_dot_q4_1_q8_1_w4a8_arm_neon);
 }
 
 void ggml_vec_dot_q5_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
@@ -819,6 +827,7 @@ void ggml_vec_dot_q5_1_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const voi
 }
 
 void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    GGML_PROF_START(ggml_vec_dot_q8_0_q8_0_w8a8_arm_neon, n * 2 * sizeof(block_q8_0));
     const int qk = QK8_0;
     const int nb = n / qk;
 
@@ -1063,6 +1072,7 @@ void ggml_vec_dot_q8_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
     }
 
     *s = sumf;
+    GGML_PROF_END(ggml_vec_dot_q8_0_q8_0_w8a8_arm_neon);
 }
 
 void ggml_vec_dot_tq1_0_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
@@ -2123,6 +2133,7 @@ void ggml_vec_dot_q3_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const voi
 }
 
 void ggml_vec_dot_q4_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    GGML_PROF_START(ggml_vec_dot_q4_K_q8_K_w4a16_arm_neon, n * (sizeof(block_q4_K) + sizeof(block_q8_K)));
     assert(n % QK_K == 0);
 #ifdef __ARM_FEATURE_MATMUL_INT8
     assert((nrc == 2) || (nrc == 1));
@@ -2486,6 +2497,7 @@ void ggml_vec_dot_q4_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const voi
     for (int l = 0; l < 8; ++l) sumf += sums[l];
     *s = sumf;
 #endif
+    GGML_PROF_END(ggml_vec_dot_q4_K_q8_K_w4a16_arm_neon);
 }
 
 void ggml_vec_dot_q5_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy,  size_t by, int nrc) {
